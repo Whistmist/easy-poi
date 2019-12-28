@@ -1,24 +1,33 @@
 package com.hand.api.controller.api;
 
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
+
 import com.hand.api.controller.dto.ReportDTO;
+import com.hand.domain.entity.CountingLines;
 import com.hand.domain.repository.CountingLinesRepository;
 import com.hand.infra.mapper.CountingLinesMapper;
+import com.hand.util.FileZip;
+import io.swagger.annotations.Api;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.poi.hssf.usermodel.HSSFPrintSetup;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.hssf.usermodel.HeaderFooter;
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
 
 /**
  * description
@@ -26,24 +35,23 @@ import java.util.*;
  * @author heng.huang@hand-china.com 2019/12/24
  */
 @RestController
-@RequestMapping("/report")
-public class FileZIPController {
+@RequestMapping("/sheet/report")
+public class FileZipController {
 
     // 部门名称
     String orgNme ="";
-    // 文件名称
-    String fileName ;
     @Autowired
     private CountingLinesRepository countingLinesRepository;
     @Autowired
     @SuppressWarnings("all")
     private CountingLinesMapper countingLinesMapper;
 
+
+    String fileName ;
+
+
     @RequestMapping()
-    public void download(HttpServletResponse response){
-        Date startDate = new Date();
-        System.out.println("==============执行程序=============="+new Date());
-        Workbook book = new HSSFWorkbook();
+    public void download(HttpServletRequest request,HttpServletResponse response) throws IOException {
         // 文件名获取
         Date date = new Date();
         SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -55,9 +63,11 @@ public class FileZIPController {
             System.out.println("==============开始查询=============="+new Date());
             // 头信息
             List<ReportDTO> headList = countingLinesMapper.selectHeadList();
+            // 行信息
+            Long taskId = 5122L;
+            List<ReportDTO> lineList = countingLinesRepository.getList(taskId);
             System.out.println("==============结束查询=============="+new Date());
-            toExcel(book,headList,10000);
-            book.write(out);
+            toExcel(headList,lineList,request,10000,fileName,out);
         } catch (IOException e1) {
             e1.printStackTrace();
         } finally {
@@ -67,64 +77,102 @@ public class FileZIPController {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            System.out.println(startDate+" ==============程序完成============== "+new Date());
         }
     }
-
-    public void toExcel(Workbook book,List<ReportDTO> headList,int length) {
+    @Async
+    public void toExcel(List<ReportDTO> headList,List<ReportDTO> lineList, HttpServletRequest request,
+                        int length, String fileName, OutputStream out) throws IOException {
         if(CollectionUtils.isEmpty(headList)){
             return;
         }
-        if(CollectionUtils.isNotEmpty(headList)){
-            int sheetPage = 0;
-            Sheet sheet;
-            System.out.println("========开始遍历头信息=======");
-            for (ReportDTO head: headList){
-                //创建 sheet
-                sheet = book.createSheet();
-                sheet.setDefaultRowHeight((short)500);
-                System.out.println("======创建第"+(sheetPage+1)+"个sheet========");
-                // 设置打印参数
-                setPrintSetup(sheet);
-                // 设置头单元格格式
-                CellStyle headCellStyle = book.createCellStyle();
-                // 设置行单元格格式
-                CellStyle lineCellStyle = book.createCellStyle();
+        // 压缩文件
+        File zip = new File(("C:\\Users\\50516\\Desktop\\12-18") + "/" + fileName + ".zip");
+        List<String> fileNames = new ArrayList();
+        Workbook book = new HSSFWorkbook();
+        Sheet sheet = book.createSheet();
+        // 设置打印参数
+        setPrintSetup(sheet);
+        // 设置头单元格格式
+        CellStyle headCellStyle = book.createCellStyle();
+        // 设置行单元格格式
+        CellStyle lineCellStyle = book.createCellStyle();
+        // 读取头信息
+        System.out.println("==============开始存表=============="+new Date());
+        // 遍历头信息
+        // 生成excel
+        System.out.println("==============生成excel=============="+new Date());
+        for (int j = 0, n = lineList.size() / length + 1; j < n; j++) {
+            String file = "C:\\Users\\50516\\Desktop\\12-18" + "/" + fileName + "-" + j
+                    + ".xls";
+            System.out.println("==============excel=============="+new Date());
+            fileNames.add(file);
+            FileOutputStream o = null;
+            try {
+                o = new FileOutputStream(file);
                 //标题
                 setTitle(headCellStyle,book,sheet);
-                //设置头标题
+                /// 设置头标题
                 setRowHeadTitle(sheet);
                 // 给头赋值
-                setHeadCellValue(lineCellStyle,sheet,head);
+                ReportDTO headValue = headList.get(0);
+                setHeadCellValue(lineCellStyle,sheet,headValue);
                 Row line = sheet.createRow(3);
-                List<ReportDTO> linesList = countingLinesRepository.getList(Long.parseLong(head.getColum1()));
                 // 设置行头标题
-                setRowLineTitle(lineCellStyle,line);
-                if(CollectionUtils.isNotEmpty(linesList)){
-                    // 给行赋值
-                    for (int i = 0 ; i < linesList.size(); i++){
-                        line = sheet.createRow(i+4);
-                        setLineCellValue(lineCellStyle,line,linesList.get(i));
-                    }
+                setRowLineTitle(line);
+                // 设置行单元格边框
+                for (int i = 0; i <= 16; i++){
+                    Cell cell = line.getCell((short) i);
+                    cell.setCellStyle(setLineCellStyle(lineCellStyle));
                 }
-                // 设置标题
+                // 给行赋值
+                int m = 1;
+                for (int i = 1, min = (lineList.size() - j * length + 1) > (length + 1) ? (length + 1)
+                        : (lineList.size() - j * length + 1); i < min; i++) {
+                    m++;
+                    ReportDTO lineValue = lineList.get(length * (j) + i - 1);
+                    line = sheet.createRow(i+3);
+                    setLineCellValue(lineCellStyle,line,lineValue);
+                }
+                //固定前四行十七个列
+                sheet.createFreezePane(17, 4);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                book.setSheetName(0, orgNme);
                 sheet.getRow(0).getCell(0).setCellValue(orgNme+"盘点汇总报表");
-                //盘点部门
-                sheet.getRow(1).getCell(10).setCellValue(orgNme);
-                book.setSheetName(sheetPage,((sheetPage+1)+"-"+orgNme));
-                orgNme = "";
-                sheetPage ++;
+                book.write(o);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            } finally {
+                o.flush();
+                o.close();
             }
         }
+        File srcfile[] = new File[fileNames.size()];
+        for (int i = 0, n = fileNames.size(); i < n; i++) {
+            srcfile[i] = new File(fileNames.get(i));
+        }
+        System.out.println("==============FileZip=============="+new Date());
+        FileZip.ZipFiles(srcfile, zip);
+        FileInputStream inStream = new FileInputStream(zip);
+        byte[] buf = new byte[4096];
+        int readLength;
+        while (((readLength = inStream.read(buf)) != -1)) {
+            out.write(buf, 0, readLength);
+        }
+        System.out.println("==============FileZip=q============="+new Date());
+        inStream.close();
     }
-    // 给头单元格赋值
-    private void setHeadCellValue(CellStyle lineCellStyle, Sheet sheet, ReportDTO headValue) {
+
+    @Async
+    public void setHeadCellValue(CellStyle lineCellStyle, Sheet sheet, ReportDTO headValue) {
         //盘点人
         sheet.getRow(1).getCell(2).setCellValue(headValue.getColum5());
         //任务编号
         sheet.getRow(1).getCell(6).setCellValue(headValue.getColum3());
         //盘点部门
-        //sheet.getRow(1).getCell(10).setCellValue(orgNme);
+        sheet.getRow(1).getCell(10).setCellValue(orgNme);
         //开始盘点时间
         sheet.getRow(1).getCell(14).setCellValue(headValue.getColum6());
         //盘点类型
@@ -147,7 +195,8 @@ public class FileZIPController {
     }
 
     // 设置头信息
-    private void setRowHeadTitle(Sheet sheet) {
+    @Async
+    public void setRowHeadTitle(Sheet sheet) {
         Row head = sheet.createRow(1);
         head.setHeight((short)500);
         head.createCell(0).setCellValue("盘点人");
@@ -175,6 +224,7 @@ public class FileZIPController {
         head.createCell(15);
         head.createCell(16);
         sheet.addMergedRegion(new CellRangeAddress(1, 1, 14, 16));
+
         head = sheet.createRow(2);
         head.setHeight((short)500);
         head.createCell(0).setCellValue("盘点类型");
@@ -205,18 +255,20 @@ public class FileZIPController {
     }
 
     // 设置主题
-    private void setTitle(CellStyle cellStyle,Workbook book,Sheet sheet) {
+    @Async
+    public void setTitle(CellStyle cellStyle,Workbook book,Sheet sheet) {
         Row row = sheet.createRow(0);
         Font ztFont = book.createFont();
         row.setHeightInPoints((short)40);
         Cell cell0 = row.createCell(0);
-        //cell0.setCellValue("盘点统计报表");
+        cell0.setCellValue("盘点统计报表");
         cell0.setCellStyle(setHeadCellStyle(cellStyle,ztFont));
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 16));
     }
 
     // 给行单元格赋值
-    private void setLineCellValue(CellStyle cellStyle,Row row,ReportDTO countingLines) {
+    @Async
+    public void setLineCellValue(CellStyle cellStyle,Row row,ReportDTO countingLines) {
         row.setHeight((short)500);
         //清单编号
         row.createCell(0).setCellValue(countingLines.getColum1());
@@ -257,11 +309,12 @@ public class FileZIPController {
             cell.setCellStyle(setLineCellStyle(cellStyle));
         }
         //获取标题名称  XXX盘点汇总报表
-        orgNme = countingLines.getColum11();
+        orgNme = countingLines.getColum12();
     }
 
     // 设置头单元格边框
-    private CellStyle setHeadCellStyle(CellStyle cellStyle,Font ztFont) {
+    @Async
+    public CellStyle setHeadCellStyle(CellStyle cellStyle,Font ztFont) {
         // 设置字体
         if(Objects.nonNull(ztFont)){
             // 将字体设置为 默认颜色
@@ -280,7 +333,8 @@ public class FileZIPController {
     }
 
     // 设置行单元格边框
-    private CellStyle setLineCellStyle(CellStyle cellStyle) {
+    @Async
+    public CellStyle setLineCellStyle(CellStyle cellStyle) {
         cellStyle.setAlignment(HorizontalAlignment.CENTER);// 水平
         cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直
         cellStyle.setWrapText(true); //文字换行
@@ -292,7 +346,8 @@ public class FileZIPController {
     }
 
     // 设置行头标题
-    private void setRowLineTitle(CellStyle lineCellStyle,Row row) {
+    @Async
+    public void setRowLineTitle(Row row) {
         row.setHeight((short)500);
         row.createCell(0).setCellValue("清单编号");
         row.createCell(1).setCellValue("盘点状态");
@@ -311,17 +366,14 @@ public class FileZIPController {
         row.createCell(14).setCellValue("现状态");
         row.createCell(15).setCellValue("原性能");
         row.createCell(16).setCellValue("现性能");
-        // 设置行单元格边框
-        for (int i = 0; i <= 16; i++){
-            Cell cell = row.getCell((short) i);
-            cell.setCellStyle(setLineCellStyle(lineCellStyle));
-        }
     }
 
-    // 设置打印参数信息
-    private void setPrintSetup(Sheet sheet) {
-        //固定前四行十七个列
-        sheet.createFreezePane(17, 4);
+    /**
+     * 设置打印参数信息
+     * @param sheet
+     */
+    @Async
+    public void setPrintSetup(Sheet sheet) {
         PrintSetup ps = sheet.getPrintSetup();
         // 打印方向，true：横向，false：纵向(默认)
         ps.setLandscape(true);
@@ -340,17 +392,18 @@ public class FileZIPController {
         //设置打印页面为水平居中
         sheet.setHorizontallyCenter(true);
         // 设置页脚
-        sheet.getFooter().setCenter( "第" + HeaderFooter.page() + "页  共 " + HeaderFooter.numPages()+"页" );
+        sheet.getFooter().setCenter( "第" + HeaderFooter.page() + "页，共 " + HeaderFooter.numPages()+"页" );
         // 设置列宽
         sheet.setColumnWidth(1, 7*256);
         sheet.setColumnWidth(15, 7*256);
         sheet.setColumnWidth(16, 7*256);
     }
 
-    // 设置响应头
-    private void setResponseHeader(HttpServletResponse response) {
+    /** 设置响应头 */
+    @Async
+    public void setResponseHeader(HttpServletResponse response) {
         try {
-            response.setContentType("application/msexcel;charset=UTF-8");
+            response.setContentType("application/octet-stream;charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment;filename="
                     + java.net.URLEncoder.encode(fileName, "UTF-8")
                     + ".xls");

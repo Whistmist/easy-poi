@@ -68,7 +68,7 @@
             LEFT JOIN halm_atn.aatn_counting_batchs batchs ON acts.batchs_id = batchs.batchs_id
         WHERE
             1=1
-            limit 200;
+            limit 250;
     </select>
 
     <select id="selectLineList" resultType="com.hand.api.controller.dto.ReportDTO">
