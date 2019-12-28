@@ -1,6 +1,6 @@
 
 # 停止运行
-port='8009'
+port='8088'
 
 # 根据端口号查询对应的pid，并删除服务进程
 pid=$(netstat -nlp | grep :$port | awk '{print $7}' | awk -F"/" '{ print $1 }');
