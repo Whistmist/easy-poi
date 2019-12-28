@@ -165,7 +165,8 @@ public class FileExcelController {
         inStream.close();
     }
 
-    private void setHeadCellValue(CellStyle lineCellStyle, Sheet sheet, ReportDTO headValue) {
+    @Async
+    public void setHeadCellValue(CellStyle lineCellStyle, Sheet sheet, ReportDTO headValue) {
         //盘点人
         sheet.getRow(1).getCell(2).setCellValue(headValue.getColum5());
         //任务编号
@@ -194,7 +195,8 @@ public class FileExcelController {
     }
 
     // 设置头信息
-    private void setRowHeadTitle(Sheet sheet) {
+    @Async
+    public void setRowHeadTitle(Sheet sheet) {
         Row head = sheet.createRow(1);
         head.setHeight((short)500);
         head.createCell(0).setCellValue("盘点人");
@@ -253,7 +255,8 @@ public class FileExcelController {
     }
 
     // 设置主题
-    private void setTitle(CellStyle cellStyle,Workbook book,Sheet sheet) {
+    @Async
+    public void setTitle(CellStyle cellStyle,Workbook book,Sheet sheet) {
         Row row = sheet.createRow(0);
         Font ztFont = book.createFont();
         row.setHeightInPoints((short)40);
@@ -264,7 +267,8 @@ public class FileExcelController {
     }
 
     // 给行单元格赋值
-    private void setLineCellValue(CellStyle cellStyle,Row row,ReportDTO countingLines) {
+    @Async
+    public void setLineCellValue(CellStyle cellStyle,Row row,ReportDTO countingLines) {
         row.setHeight((short)500);
         //清单编号
         row.createCell(0).setCellValue(countingLines.getColum1());
@@ -309,7 +313,8 @@ public class FileExcelController {
     }
 
     // 设置头单元格边框
-    private CellStyle setHeadCellStyle(CellStyle cellStyle,Font ztFont) {
+    @Async
+    public CellStyle setHeadCellStyle(CellStyle cellStyle,Font ztFont) {
         // 设置字体
         if(Objects.nonNull(ztFont)){
             // 将字体设置为 默认颜色
@@ -328,7 +333,8 @@ public class FileExcelController {
     }
 
     // 设置行单元格边框
-    private CellStyle setLineCellStyle(CellStyle cellStyle) {
+    @Async
+    public CellStyle setLineCellStyle(CellStyle cellStyle) {
         cellStyle.setAlignment(HorizontalAlignment.CENTER);// 水平
         cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);// 垂直
         cellStyle.setWrapText(true); //文字换行
@@ -340,7 +346,8 @@ public class FileExcelController {
     }
 
     // 设置行头标题
-    private void setRowLineTitle(Row row) {
+    @Async
+    public void setRowLineTitle(Row row) {
         row.setHeight((short)500);
         row.createCell(0).setCellValue("清单编号");
         row.createCell(1).setCellValue("盘点状态");
@@ -365,7 +372,8 @@ public class FileExcelController {
      * 设置打印参数信息
      * @param sheet
      */
-    private void setPrintSetup(Sheet sheet) {
+    @Async
+    public void setPrintSetup(Sheet sheet) {
         PrintSetup ps = sheet.getPrintSetup();
         // 打印方向，true：横向，false：纵向(默认)
         ps.setLandscape(true);
@@ -392,12 +400,13 @@ public class FileExcelController {
     }
 
     /** 设置响应头 */
+    @Async
     public void setResponseHeader(HttpServletResponse response) {
         try {
             response.setContentType("application/octet-stream;charset=UTF-8");
             response.setHeader("Content-Disposition", "attachment;filename="
                     + java.net.URLEncoder.encode(fileName, "UTF-8")
-                    + ".zip");
+                    + ".xls");
             response.addHeader("Pargam", "no-cache");
             response.addHeader("Cache-Control", "no-cache");
         } catch (Exception ex) {
