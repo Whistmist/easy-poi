@@ -22,6 +22,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -78,7 +79,7 @@ public class FileExcelController {
             }
         }
     }
-
+    @Async
     public void toExcel(List<ReportDTO> headList,List<ReportDTO> lineList, HttpServletRequest request,
                         int length, String fileName, OutputStream out) throws IOException {
         if(CollectionUtils.isEmpty(headList)){
