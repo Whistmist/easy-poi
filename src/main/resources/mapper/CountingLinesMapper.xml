@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.infra.mapper.CountingLinesMapper">
+	<!-- 可根据自己的需求，是否要使用 -->
+    <resultMap id="BaseResultMap" type="com.hand.domain.entity.CountingLines">
+        <result column="lines_id" property="linesId" jdbcType="DECIMAL"/>
+        <result column="lines_name" property="linesName" jdbcType="VARCHAR"/>
+        <result column="lines_number" property="linesNumber" jdbcType="VARCHAR"/>
+        <result column="lines_tracking_number" property="linesTrackingNumber" jdbcType="VARCHAR"/>
+        <result column="tasks_id" property="tasksId" jdbcType="DECIMAL"/>
+        <result column="batchs_id" property="batchsId" jdbcType="DECIMAL"/>
+        <result column="counting_person_id" property="countingPersonId" jdbcType="DECIMAL"/>
+        <result column="asset_id" property="assetId" jdbcType="DECIMAL"/>
+        <result column="counting_status" property="countingStatus" jdbcType="VARCHAR"/>
+        <result column="adjust_posted_flag" property="adjustPostedFlag" jdbcType="VARCHAR"/>
+        <result column="adjustment_method" property="adjustmentMethod" jdbcType="VARCHAR"/>
+        <result column="treatment_process" property="treatmentProcess" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="attribute1" property="attribute1" jdbcType="VARCHAR"/>
+        <result column="attribute2" property="attribute2" jdbcType="VARCHAR"/>
+        <result column="attribute3" property="attribute3" jdbcType="VARCHAR"/>
+        <result column="attribute4" property="attribute4" jdbcType="VARCHAR"/>
+        <result column="attribute5" property="attribute5" jdbcType="VARCHAR"/>
+        <result column="attribute6" property="attribute6" jdbcType="VARCHAR"/>
+        <result column="attribute7" property="attribute7" jdbcType="VARCHAR"/>
+        <result column="attribute8" property="attribute8" jdbcType="VARCHAR"/>
+        <result column="attribute9" property="attribute9" jdbcType="VARCHAR"/>
+        <result column="attribute10" property="attribute10" jdbcType="VARCHAR"/>
+        <result column="attribute11" property="attribute11" jdbcType="VARCHAR"/>
+        <result column="attribute12" property="attribute12" jdbcType="VARCHAR"/>
+        <result column="attribute13" property="attribute13" jdbcType="VARCHAR"/>
+        <result column="attribute14" property="attribute14" jdbcType="VARCHAR"/>
+        <result column="attribute15" property="attribute15" jdbcType="VARCHAR"/>
+        <result column="tenant_id" property="tenantId" jdbcType="DECIMAL"/>
+        <result column="object_version_number" property="objectVersionNumber" jdbcType="DECIMAL"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="profit_loss_diff_type" property="profitLossDiffType" jdbcType="VARCHAR"/>
+        <result column="process_num" property="processNum" jdbcType="VARCHAR"/>
+        <result column="comparison_result" property="comparisonResult" jdbcType="VARCHAR"/>
+        <result column="correspondence_org_id" property="correspondenceOrgId" jdbcType="DECIMAL"/>
+        <result column="process_status" property="processStatus" jdbcType="VARCHAR"/>
+        <result column="source_code" property="sourceCode" jdbcType="VARCHAR"/>
+        <result column="attribute16" property="attribute16" jdbcType="VARCHAR"/>
+        <result column="attribute17" property="attribute17" jdbcType="VARCHAR"/>
+        <result column="attribute18" property="attribute18" jdbcType="VARCHAR"/>
+        <result column="attribute19" property="attribute19" jdbcType="VARCHAR"/>
+        <result column="attribute20" property="attribute20" jdbcType="VARCHAR"/>
+        <result column="asset_tag_name" property="assetTagName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectHeadList" resultType="com.hand.api.controller.dto.ReportDTO">
+       SELECT
+            acts.tasks_id colum1,
+            ifnull( counting_type.full_name, '' ) colum2,
+            acts.tasks_number colum3,
+            acts.tasks_name colum4,
+            ifnull( user_person.NAME, '' ) colum5,
+            DATE_FORMAT( acts.actual_start_date, '%Y-%m-%d' ) colum6,
+            DATE_FORMAT( acts.actual_end_date, '%Y-%m-%d' ) colum7,
+            ifnull( acts.description, '' ) colum8
+        FROM
+            halm_atn.aatn_counting_tasks acts
+            LEFT JOIN halm_atn.aatn_counting_type counting_type ON acts.counting_type_id = counting_type.counting_type_id
+            LEFT JOIN halm_atn.hpfm_employee user_person ON user_person.employee_id = acts.counting_person_id
+            LEFT JOIN halm_atn.aatn_counting_batchs batchs ON acts.batchs_id = batchs.batchs_id
+        WHERE
+            1=1
+            limit 200;
+    </select>
+
+    <select id="selectLineList" resultType="com.hand.api.controller.dto.ReportDTO">
+        SELECT
+            ifnull( substring_index( counting_lines.lines_number, '-', - 1 ), '' ) colum1,
+            ( SELECT hlv.meaning FROM hzero_platform.hpfm_lov_value hlv WHERE hlv.lov_code = 'AATN.COUNTING_LINES_STATUS' AND hlv.VALUE = counting_lines.counting_status ) colum2,
+            ifnull( asset.asset_num, '' ) colum3,
+            ifnull( counting_lines.asset_tag_name, '' ) colum4,
+            ifnull( counting_lines.attribute8, '' ) colum5,
+            ifnull( asset.`name`, '' ) colum6,
+            ifnull( counting_lines.lines_name, counting_lines.attribute20 ) colum7,
+            ifnull( counting_lines.attribute1, '' ) colum8,
+            ifnull( counting_lines.attribute2, '' ) colum9,
+            ( CASE using_org.business_type_code WHEN '6' THEN manager.NAME ELSE user_person.`name` END ) colum10,
+            ifnull( counting_lines.attribute12, '' ) colum11,
+            ifnull( owning_org.org_name, '' ) colum12,
+            ifnull( counting_lines.attribute15, '' ) colum13,
+            ifnull( acr.attribute9, '' ) colum14,
+            ifnull( counting_lines.attribute17, '' ) colum15,
+            ifnull( acr.attribute11, '' ) colum16,
+            ( SELECT hlv.meaning FROM hzero_platform.hpfm_lov_value hlv WHERE hlv.lov_code = 'AAFM.ASSET_PERFORMANCE' AND hlv.VALUE = counting_lines.attribute7 ) colum17,
+            ( SELECT hlv.meaning FROM hzero_platform.hpfm_lov_value hlv WHERE hlv.lov_code = 'AAFM.ASSET_PERFORMANCE' AND hlv.VALUE = acr.attribute8 ) colum18
+        FROM
+            halm_atn.aatn_counting_lines counting_lines
+            LEFT JOIN halm_atn.aatn_counting_batchs batchs ON counting_lines.batchs_id = batchs.batchs_id
+            LEFT JOIN halm_atn.aafm_asset asset ON counting_lines.asset_id = asset.asset_id
+            LEFT JOIN halm_atn.hpfm_employee user_person ON ( user_person.employee_id = asset.user_person_id )
+            LEFT JOIN halm_atn.aafm_asset_status asset_status ON asset.asset_status_id = asset_status.asset_status_id
+            LEFT JOIN halm_atn.amdm_organization using_org ON ( counting_lines.attribute3 = using_org.org_id )
+            LEFT JOIN halm_atn.hpfm_employee manager ON using_org.contact_code = manager.employee_num
+            LEFT JOIN halm_atn.amdm_organization owning_org ON ( asset.owning_org_id = owning_org.org_id )
+            LEFT JOIN halm_atn.amdm_organization correspondence_org ON ( counting_lines.correspondence_org_id = correspondence_org.org_id )
+            LEFT JOIN halm_atn.aatn_counting_results acr ON (
+            acr.lines_id = counting_lines.lines_id
+            AND acr.results_id = ( SELECT max( acr1.results_id ) FROM halm_atn.aatn_counting_results acr1 WHERE acr1.lines_id = acr.lines_id )
+            )
+        WHERE
+            1=1
+            <if test="taskId != null">
+                and counting_lines.tasks_id = #{taskId}
+            </if>
+            order by counting_lines.lines_id asc
+    </select>
+</mapper>
