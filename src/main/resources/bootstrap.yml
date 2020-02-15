@@ -1,11 +1,11 @@
 server:
   # 服务端口
-  port: 8088
+  port: 8089
 
 # 日志配置
 logging:
   level:
-    com.hand : ${LOG_LEVEL:debug}
-    org.hzero: ${LOG_LEVEL:debug}
+    #com.hand : ${LOG_LEVEL:debug}
+    org.hzero: ${LOG_LEVEL:info}
     org.apache.ibatis: ${LOG_LEVEL:debug}
-    io.choerodon: ${LOG_LEVEL:debug}
+    io.choerodon: ${LOG_LEVEL:info}
